@@ -9,8 +9,7 @@ class SSEHandler {
   public orders: any[];
   public dropped: number;
   public fulfilled: number;
-  public unfulfilled: number;
-  public prev_block: number;
+  public outstanding: number;
   public drop_record: string[];
 
   constructor(url: string) {
@@ -18,8 +17,8 @@ class SSEHandler {
     this.orders = new Array(constants.BLOCK_TOLERANCE as number).fill(null).map(() => []);
     this.dropped = 0;
     this.fulfilled = 0;
-    this.unfulfilled = 0;
-    this.prev_block = 0;
+    this.outstanding = 0;
+    this.drop_record = [];
   }
 
   public registerEvents(): void {
@@ -29,10 +28,11 @@ class SSEHandler {
   }
 
   private handleMessage = (event: MessageEvent): void => {
+    // standardise into IOrder format
     const data: IOrder = {
       hash: JSON.parse(event.data).hash,
       timestamp: Date.now(),
-      blocks_elapsed: this.prev_block === 0 ? 0 : this.current_block - this.prev_block,
+      blocks_elapsed: 0,
       received_in: this.current_block,
     };
 
@@ -80,13 +80,15 @@ class SSEHandler {
       );
 
       this.fulfilled += bucket_changes.length;
+      this.outstanding -= bucket_changes.length;
     });
   };
 
   public handleNewBlock() {
     this.orders.unshift([]);
-    let to_discard = this.orders.pop();
+    let to_discard: IOrder[] = this.orders.pop();
     this.dropped += to_discard.length;
+    this.outstanding -= to_discard.length;
 
     this.orders = this.orders.map((bucket) =>
       bucket.map((order: IOrder) => {
@@ -95,14 +97,19 @@ class SSEHandler {
       })
     );
 
-    console.log('fulfilled:', this.fulfilled);
-    console.log('dropped:', this.dropped);
+    if (to_discard.length > 0) {
+      /* temporary record (for figuring out BLOCK_TOLERANCE param tuning) */
+      this.drop_record.push(...to_discard.map((order: IOrder) => order.hash));
+    }
 
-    /* temporary record (for figuring out BLOCK_TOLERANCE param tuning) */
-    this.drop_record.push(to_discard.hash);
+    console.log('fulfilled:', this.fulfilled);
+    console.log('outstanding [20 block tolerance]:', this.outstanding);
+    console.log('dropped:', this.dropped);
+    console.log('dropped tx hash record:', this.drop_record);
   }
 
   public updateOrderRecord(order: IOrder) {
+    this.outstanding++;
     this.orders[0].push(order);
   }
 
