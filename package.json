@@ -4,19 +4,26 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "dev": "ts-node -r tsconfig-paths/register ./src/index.ts"
+    "dev": "ts-node -r tsconfig-paths/register ./src/index.ts",
+    "debug": "ts-node -r tsconfig-paths/register"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "axios": "^1.4.0",
+    "core-js": "^3.26.1",
+    "dotenv": "^16.0.3",
     "eventsource": "^2.0.2",
     "ts-node": "^10.9.1",
     "ts-node-dev": "^2.0.0",
     "tsconfig-paths": "^4.2.0",
-    "typescript": "^5.0.4"
+    "typescript": "^5.0.4",
+    "ws": "^8.13.0"
   },
   "devDependencies": {
-    "@types/eventsource": "^1.1.11"
+    "@types/axios": "^0.14.0",
+    "@types/eventsource": "^1.1.11",
+    "@types/ws": "^8.5.4"
   }
 }
