@@ -12,9 +12,11 @@ class SSEHandler {
   public outstanding: number;
   public dropped: number;
   public drop_record: string[];
+  public flush_count: number;
 
   constructor(url: string) {
     this.eventSource = new EventSource(url);
+    this.flush_count = 0;
     this.dropped = 0;
     this.fulfilled = 0;
     this.fulfilled_record = [];
@@ -105,11 +107,11 @@ class SSEHandler {
       this.drop_record.push(...to_discard.map((order: IOrder) => order.hash));
     }
 
-    console.log('fulfilled:', this.fulfilled);
     console.log('fulfilled_record:', this.fulfilled_record);
+    console.log('dropped tx hash record:', this.drop_record);
+    console.log('fulfilled:', this.fulfilled);
     console.log('outstanding [20 block tolerance]:', this.outstanding);
     console.log('dropped:', this.dropped);
-    console.log('dropped tx hash record:', this.drop_record);
 
     if (this.fulfilled > 500 || this.dropped > 500) {
       this.flushOrders();
@@ -119,8 +121,10 @@ class SSEHandler {
   public flushOrders() {
     this.orders = new Array(constants.BLOCK_TOLERANCE as number).fill(null).map(() => []);
     this.dropped = 0;
+    this.fulfilled = 0;
     this.drop_record = [];
     this.fulfilled_record = [];
+    this.flush_count++;
   }
 
   public updateOrderRecord(order: IOrder) {
