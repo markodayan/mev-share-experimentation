@@ -7,17 +7,19 @@ class SSEHandler {
   public current_block: number;
   public start_block: number;
   public orders: any[];
-  public dropped: number;
   public fulfilled: number;
+  public fulfilled_record: string[];
   public outstanding: number;
+  public dropped: number;
   public drop_record: string[];
 
   constructor(url: string) {
     this.eventSource = new EventSource(url);
-    this.orders = new Array(constants.BLOCK_TOLERANCE as number).fill(null).map(() => []);
     this.dropped = 0;
     this.fulfilled = 0;
+    this.fulfilled_record = [];
     this.outstanding = 0;
+    this.orders = new Array(constants.BLOCK_TOLERANCE as number).fill(null).map(() => []);
     this.drop_record = [];
   }
 
@@ -72,6 +74,7 @@ class SSEHandler {
     // we map over the tuples (each bucket containing fulfilled orders) and remove them in-place from the the respective buckets
     structured_result.map((bucket_changes) => {
       let outer_idx = bucket_changes[0].blocks_elapsed;
+      this.fulfilled_record.push(...bucket_changes.map((order: IOrder) => order.hash));
 
       // We remove multiple values in-place by descending splice algorithm
       misc.removeByIndices(
@@ -103,9 +106,21 @@ class SSEHandler {
     }
 
     console.log('fulfilled:', this.fulfilled);
+    console.log('fulfilled_record:', this.fulfilled_record);
     console.log('outstanding [20 block tolerance]:', this.outstanding);
     console.log('dropped:', this.dropped);
     console.log('dropped tx hash record:', this.drop_record);
+
+    if (this.fulfilled > 500 || this.dropped > 500) {
+      this.flushOrders();
+    }
+  }
+
+  public flushOrders() {
+    this.orders = new Array(constants.BLOCK_TOLERANCE as number).fill(null).map(() => []);
+    this.dropped = 0;
+    this.drop_record = [];
+    this.fulfilled_record = [];
   }
 
   public updateOrderRecord(order: IOrder) {
